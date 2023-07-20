@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Main Spawn
   - Allies
+  - Enemy
+  - BattleManager
   layers:
   - Default
   - TransparentFX

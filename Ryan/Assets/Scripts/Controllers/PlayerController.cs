@@ -40,7 +40,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     // Update is called once per frame
-    void Update() {
+    void FixedUpdate() {
         isGrounded = _rigidbody.IsTouchingLayers(ground.value);
         isSwimming = _rigidbody.IsTouchingLayers(water.value);
 
@@ -70,6 +70,12 @@ public class PlayerController : MonoBehaviour {
                     jumppedInAir = true;
                 }
                 return jump;
+            }
+        } else if (Input.GetButton("Vertical") && isSwimming) {
+            var y = Input.GetAxisRaw("Vertical");
+
+            if (y == -1) {
+                return - 1 * speed;
             }
         }
         return _rigidbody.velocity.y;
