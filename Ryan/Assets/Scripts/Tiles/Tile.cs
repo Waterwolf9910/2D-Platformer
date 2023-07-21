@@ -10,12 +10,13 @@ public abstract class Tile {
 
     private static Dictionary<string, Tile> Tiles = new();
 
+    [System.Flags]
     public enum Side {
-        Up,
-        Down,
-        Left,
-        Right,
-        All
+        Up = 1,
+        Down = 2,
+        Left = 4,
+        Right = 8,
+        Null = 0
     }
 
     //private static int _id = 0;
@@ -34,7 +35,7 @@ public abstract class Tile {
 
     //public int id { get; }  = _id++;
 
-    protected Dictionary<string, float> allowedNeighbors {
+    protected Dictionary<string, Side> allowedNeighbors {
         get;
     } = new();
 
@@ -51,21 +52,55 @@ public abstract class Tile {
         return null;
     }
 
-    public bool IsAllowedNeighbor(Tile? tile) {
+    /// <summary>
+    /// ONLY ONE SIDE HERE
+    /// </summary>
+    /// <param name="tile">The Tile to check against</param>
+    /// <param name="side">The Side the "tile" gets placed</param>
+    /// <returns></returns>
+    public bool IsAllowedNeighbor(Tile? tile, Side side) {
         if (tile == null) {
-            return true;
+            return false;
         }
-        return tile.IsAllowedNeighbor(this) || this.allowedNeighbors.ContainsKey(tile.Name); 
+
+        if (!this.allowedNeighbors.ContainsKey(tile.Name)) {
+            return false;
+        }
+
+        if (!tile.allowedNeighbors.ContainsKey(this.Name)) {
+            return false;
+        }
+
+        return (tile.allowedNeighbors[tile.Name] & OppositeSide(side)) == OppositeSide(side) && (this.allowedNeighbors[tile.Name] & side) == side; 
+    }
+
+    // The names of the allowed tiles
+    public List<string> GetAllowedNeighbors(Side side, IEnumerable<string> tiles) {
+        return new List<string>(this.allowedNeighbors.Where(kv => { Debug.Log($"({this.Name} -> {kv.Key} | {side} to {kv.Value}): {(kv.Value & side) == side}"); return side == Side.Null || (kv.Value & side) == side; }).Select(a => a.Key).Where(tiles.Contains));
+    }
+
+    public virtual bool isWalkable(Entity entity) {
+        return true;
     }
 
     protected void AddAllowedNeighbor(Tile tile, Side sides = Side.Up | Side.Right | Side.Left | Side.Down) {
-        //TODO: ()
-        throw new System.Exception("Not Implemented");
-        //this.allowedNeighbors[tile.Name] = weight;
+        if (!this.allowedNeighbors.ContainsKey(tile.Name)) {
+            this.allowedNeighbors[tile.Name] = sides;
+        }
+        this.allowedNeighbors[tile.Name] |= sides;
     }
 
     protected void RemoveAllowedNeighbor(Tile tile) {
         this.allowedNeighbors.Remove(tile.Name);
+    }
+
+    // Remove a side from the allowed sides
+    protected void RemoveAllowedNeighbor(Tile tile, Side side) {
+        if (!this.allowedNeighbors.ContainsKey(tile.Name)) {
+            Debug.LogWarning($"Tile: {this.Name} does not allow the neightbor: {tile.Name}");
+            return;
+        }
+        this.allowedNeighbors[tile.Name] &= ~side;
     }
 
     protected Tile(string name, string path = null, string altPath = null) {
@@ -79,11 +114,10 @@ public abstract class Tile {
             this.AltPath = this.Path;
         }
         //this.altPath = Resources.Load(altPath) != null ? altPath : null;
-        if (Tiles.ContainsKey(name)) {
-            throw new System.InvalidOperationException($"Only one tile and be registered once with this name: {name}\nTiles are usually registered");
+        if (!Tiles.ContainsKey(name)) {
+            Tiles.Add(name, this);
+            //throw new System.InvalidOperationException($"Only one tile and be registered once with the name: {name}\n\"Most\" tiles are usually registered at the start of the program");
         }
-        Tiles.Add(name, this);
-        this.AddAllowedNeighbor(this);
             
     }
 
@@ -92,13 +126,39 @@ public abstract class Tile {
         if (CheckedAssemblies.Contains(assembly.FullName)) {
             return;
         }
+        List<Tile> objs = new();
         foreach (System.Type type in assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Tile)))) {
             try {
-                System.Activator.CreateInstance(type, true);
+                objs.Add((Tile) System.Activator.CreateInstance(type, true));
             }
             catch { }
         }
         CheckedAssemblies.Add(assembly.FullName);
+        foreach(Tile tile in objs) {
+            tile.RunFirstAdds();
+        }
+    }
+
+    protected virtual void RunFirstAdds() { }
+
+    private static Side OppositeSide(Side side) {
+        switch (side) {
+            case Side.Left: {
+                return Side.Right;
+            }
+            case Side.Right: {
+                return Side.Left;
+            }
+            case Side.Up: {
+                return Side.Down;
+            }
+            case Side.Down: {
+                return Side.Up;
+            }
+            default: {
+                throw new System.Exception("An invalid side has bee given");
+            }
+        }
     }
 
     static Tile() {

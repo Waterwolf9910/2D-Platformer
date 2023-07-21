@@ -40,7 +40,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     // Update is called once per frame
-    void FixedUpdate() {
+    void Update() {
         isGrounded = _rigidbody.IsTouchingLayers(ground.value);
         isSwimming = _rigidbody.IsTouchingLayers(water.value);
 

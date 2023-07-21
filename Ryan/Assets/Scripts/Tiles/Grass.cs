@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 public class Grass : Tile {
 
     protected Grass() : base("grass") {
+    }
+
+    protected override void RunFirstAdds() {
+        this.AddAllowedNeighbor(Tile.GetTile("water"), Side.Left | Side.Right);
         this.AddAllowedNeighbor(this);
     }
 }

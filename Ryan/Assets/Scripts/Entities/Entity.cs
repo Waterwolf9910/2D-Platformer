@@ -176,8 +176,10 @@ public abstract class Entity : MonoBehaviour {
     /// Toggles state of sprite and returns the renderer
     /// </summary>
     /// <returns>The SpriteRenderer for the Entity</returns>
-    public SpriteRenderer ToggleSprite() {
-        _renderer.enabled = !_renderer.enabled;
+    public SpriteRenderer GetSpriteRenderer(bool toggle) {
+        if (toggle) {
+            _renderer.enabled = !_renderer.enabled;
+        }
         return _renderer;
     }
 
@@ -280,7 +282,6 @@ public abstract class Entity : MonoBehaviour {
     //    return Sprites[this.Name];
     //}
 
-    bool hasRenderer = false;
     void Update() {
         //if (!hasRenderer) {
         //    this.gameObject.TryGetComponent(out SpriteRenderer renderer);

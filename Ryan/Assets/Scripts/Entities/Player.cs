@@ -38,6 +38,6 @@ public class Player : Entity {
             dic.Add(e, BoardSide.Right);
         });
         battle.CreateNew(dic);
-        battle.StartBattle(Tile.GetTile("grass"));
+        battle.StartBattle(Tile.GetTile("grass"), Tile.GetTile("water"));
     }
 }

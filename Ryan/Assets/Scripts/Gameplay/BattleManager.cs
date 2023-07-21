@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using UnityEngine;
@@ -36,9 +37,8 @@ public class BattleManager : MonoBehaviour {
 
     //private Entity entity;
     //private GameObject EntityObject;
-    private Dictionary<Vector2Int, Entity> Board = new();
+    private Dictionary<Vector2Int, TileData> Board = new();
     private List<Vector2Int> CompletedTurns = new();
-    private List<Vector2Int> ValidTiles = new();
     private Dictionary<int, bool> PrevActiveGO = new();
     private int BoardX = 9;
     private int BoardY = 16;
@@ -76,56 +76,57 @@ public class BattleManager : MonoBehaviour {
         void GenPos() {
             switch (side) {
                 case BoardSide.Left: {
-                    pos = new(Random.Range(0, this.BoardX / 2), Random.Range(0, this.BoardY));
-                    break;
-                }
+                        pos = new(Random.Range(0, this.BoardX / 2), Random.Range(0, this.BoardY));
+                        break;
+                    }
                 case BoardSide.Right: {
-                    pos = new(Random.Range(this.BoardX / 2, this.BoardX), Random.Range(0, this.BoardY));
-                    break;
-                }
+                        pos = new(Random.Range(this.BoardX / 2, this.BoardX), Random.Range(0, this.BoardY));
+                        break;
+                    }
                 case BoardSide.Bottom: {
-                    pos = new(Random.Range(0, this.BoardX), Random.Range(0, this.BoardY / 2));
-                    break;
-                }
+                        pos = new(Random.Range(0, this.BoardX), Random.Range(0, this.BoardY / 2));
+                        break;
+                    }
                 case BoardSide.Top: {
-                    pos = new(Random.Range(0, this.BoardX), Random.Range(this.BoardY / 2, this.BoardY));
-                    break;
-                }
+                        pos = new(Random.Range(0, this.BoardX), Random.Range(this.BoardY / 2, this.BoardY));
+                        break;
+                    }
                 case BoardSide.TopLeft: {
-                    pos = new(Random.Range(0, this.BoardX / 2), Random.Range(this.BoardY / 2, this.BoardY));
-                    break;
-                }
+                        pos = new(Random.Range(0, this.BoardX / 2), Random.Range(this.BoardY / 2, this.BoardY));
+                        break;
+                    }
                 case BoardSide.TopRight: {
-                    pos = new(Random.Range(this.BoardX / 2, this.BoardX), Random.Range(this.BoardY / 2, this.BoardY));
-                    break;
-                }
+                        pos = new(Random.Range(this.BoardX / 2, this.BoardX), Random.Range(this.BoardY / 2, this.BoardY));
+                        break;
+                    }
                 case BoardSide.BottomLeft: {
-                    pos = new(Random.Range(0, this.BoardX / 2), Random.Range(0, this.BoardY / 2));
-                    break;
-                }
+                        pos = new(Random.Range(0, this.BoardX / 2), Random.Range(0, this.BoardY / 2));
+                        break;
+                    }
                 case BoardSide.BottomRight: {
-                    pos = new(Random.Range(this.BoardX / 2, this.BoardX), Random.Range(0, this.BoardY / 2));
-                    break;
-                }
+                        pos = new(Random.Range(this.BoardX / 2, this.BoardX), Random.Range(0, this.BoardY / 2));
+                        break;
+                    }
             }
         }
         GenPos();
         int attempts = 0;
-        while (this.Board.ContainsKey(pos)) {
-            if (attempts > maxAttempts) {
-                throw new System.Exception("Error Finding Placement");
+        while (this.Board[pos].entity != null && this.Board[pos].tile.isWalkable(entity)) {
+            if (attempts == maxAttempts) {
+                Debug.LogException(new System.Exception("Error Finding Placement"));
+                return;
             }
             ++attempts;
             GenPos();
         }
         //this.board[pos] = Instantiate(entity, new(pos.x, pos.y), Quaternion.identity);
-        this.Board[pos] = Instantiate(entity, new(pos.x, pos.y, -0.05f), Quaternion.identity);
-        SceneManager.MoveGameObjectToScene(this.Board[pos].gameObject, this.BoardScene);
-        this.Board[pos].gameObject.name = $"{this.Board[pos].Name} #{this.Board[pos].Id}";
+        this.Board[pos].entity = Instantiate(entity, new(pos.x, pos.y, -0.05f), Quaternion.identity);
+        SceneManager.MoveGameObjectToScene(this.Board[pos].entity.gameObject, this.BoardScene);
+        this.Board[pos].entity.gameObject.name = $"{this.Board[pos].entity.Name} #{this.Board[pos].entity.Id}";
         //this.board[pos].transform.SetParent(null);
-        if (this.Board[pos].Alignment == Entity.EntityAlignment.Enemy) {
+        if (this.Board[pos].entity.Alignment == Entity.EntityAlignment.Enemy) {
             this.EnemyCount++;
-        } else if (this.Board[pos].Alignment == Entity.EntityAlignment.Ally) {
+        } else if (this.Board[pos].entity.Alignment == Entity.EntityAlignment.Ally) {
             this.AllyCount++;
         }
     }
@@ -136,17 +137,18 @@ public class BattleManager : MonoBehaviour {
     /// <param name="entity">The entity to copy</param>
     /// <param name="pos">Where to spawn the entity</param>
     public void AddEntity(Entity entity, Vector2Int pos) {
-        if (this.Board.ContainsKey(pos)) {
-            throw new System.Exception("There is already an entity here");
+        if (this.Board[pos].entity != null) {
+            Debug.LogException(new System.Exception("There is already an entity here"));
+            return;
         }
         //this.board[pos] = Instantiate(entity, new(pos.x, pos.y), Quaternion.identity);
-        this.Board[pos] = Instantiate(entity, new(pos.x, pos.y, -0.05f), Quaternion.identity);
-        SceneManager.MoveGameObjectToScene(this.Board[pos].gameObject, this.BoardScene);
-        this.Board[pos].gameObject.name = $"{this.Board[pos].Name} #{this.Board[pos].Id}";
+        this.Board[pos].entity = Instantiate(entity, new(pos.x, pos.y, -0.05f), Quaternion.identity);
+        SceneManager.MoveGameObjectToScene(this.Board[pos].entity.gameObject, this.BoardScene);
+        this.Board[pos].entity.gameObject.name = $"{this.Board[pos].entity.Name}  # {this.Board[pos].entity.Id}";
         //this.board[pos].transform.SetParent(null);
-        if (this.Board[pos].Alignment == Entity.EntityAlignment.Enemy) {
+        if (this.Board[pos].entity.Alignment == Entity.EntityAlignment.Enemy) {
             this.EnemyCount++;
-        } else if (this.Board[pos].Alignment == Entity.EntityAlignment.Ally) {
+        } else if (this.Board[pos].entity.Alignment == Entity.EntityAlignment.Ally) {
             this.AllyCount++;
         }
     }
@@ -171,27 +173,31 @@ public class BattleManager : MonoBehaviour {
     /// <param name="attack">To attack the at the position (if there is one and opposite alignment)</param>
     public void MoveEntity(Vector2Int from, Vector2Int to, bool attack) {
         Vector2Int pos = to;
-        if (this.Board.ContainsKey(to)) {
+        if (this.Board[to].entity != null) {
             pos = Direction(from, to);
         }
         this.IsEntityMoving = true;
-        this.Board[from].MoveTo(new(pos.x, pos.y, this.Board[from].transform.position.z), true, () => {
+        this.Board[from].entity.MoveTo(new(pos.x, pos.y, this.Board[from].entity.transform.position.z), true, () => {
+            var _toInfo = this.Board[to];
+            var _fromInfo = this.Board[from];
             if (pos != to) {
                 if (attack) {
-                    if (this.Board[to].HandleDamage(this.Board[from]) <= 0) {
-                        if (this.Board[to].Alignment == Entity.EntityAlignment.Enemy) {
+                    if (_toInfo.entity.HandleDamage(_fromInfo.entity) <= 0) {
+                        if (_toInfo.entity.Alignment == Entity.EntityAlignment.Enemy) {
                             this.EnemyCount--;
-                        } else if (this.Board[to].Alignment == Entity.EntityAlignment.Ally) {
+                        } else if (_toInfo.entity.Alignment == Entity.EntityAlignment.Ally) {
                             this.AllyCount--;
                         }
-                        this.Board.Remove(to);
+                        _toInfo.entity = null;
+
                     }
                 }
             }
             if (pos != from) {
-                this.Board[pos] = this.Board[from];
-                this.Board.Remove(from);
+                this.Board[pos].entity = this.Board[from].entity;
+                this.Board[from].entity = null;
             }
+            this.CompletedTurns.Add(pos);
             this.IsEntityMoving = false;
         });
     }
@@ -215,8 +221,8 @@ public class BattleManager : MonoBehaviour {
     /// <param name="y">The Y coordinate to check</param>
     /// <returns>If the tile is free or attackable</returns>
     public (bool free, bool attack) CanMove(Entity entity, Vector2Int pos) {
-        this.Board.TryGetValue(pos, out var entity1);
-        return (free: entity1 == null, attack: entity1 != null && this.Board[pos].Alignment != entity.Alignment);
+        var _info = this.Board[pos];
+        return (free: _info.entity == null && _info.tile.isWalkable(entity), attack: _info.entity != null && _info.entity.Alignment != entity.Alignment);
     }
 
     /// <summary>
@@ -225,11 +231,16 @@ public class BattleManager : MonoBehaviour {
     /// <param name="initEntities">The entities to add</param>
     /// <param name="x">The horizontal size of the board</param>
     /// <param name="y">The vertical size of the board</param>
-    public void CreateNew(Dictionary<EntitySelection, BoardSide> initEntities, int x = 9, int y = 16) {
+    public void CreateNew(Dictionary<EntitySelection, BoardSide> initEntities, int x = 16, int y = 9) {
         this.Board.Clear();
+        for (var _y = 0; _y < y; _y++) {
+            for (var _x = 0; _x < x; _x++) {
+                this.Board[new(_x, _y)] = new(null, null);
+            }
+        }
         this.BoardScene = SceneManager.CreateScene($"BattleScene {_id++}");
-        this.BoardY = x;
-        this.BoardX = y;
+        this.BoardY = y;
+        this.BoardX = x;
         SceneManager.MoveGameObjectToScene(this.gameObject, this.BoardScene);
         this.gameObject.transform.position = new(x / 2.13f, y / 2.3f, -20);
         foreach (var placement in initEntities) {
@@ -247,15 +258,22 @@ public class BattleManager : MonoBehaviour {
     /// <param name="initEntities">The entites and their positions on the board</param>
     /// <param name="x">The horizontal size of the board</param>
     /// <param name="y">The vertical size of the board</param>
-    public void CreateNew(Dictionary<Vector2Int, Entity> initEntities, int x = 9, int y = 16) {
+    public void CreateNew(Dictionary<Vector2Int, Entity> initEntities, int x = 16, int y = 9) {
+        this.Board.Clear();
         this.BoardScene = SceneManager.CreateScene($"BattleScene {_id++}");
-        this.BoardY = x;
-        this.BoardX = y;
+        this.BoardY = y;
+        this.BoardX = x;
+        for (var _y = 0; _y < y; _y++) {
+            for (var _x = 0; _x < x; _x++) {
+                this.Board[new(_x, _y)] = new(null, null);
+            }
+        }
         SceneManager.MoveGameObjectToScene(this.gameObject, this.BoardScene);
         this.gameObject.transform.position = new(x / 2.13f, y / 2.3f, -20);
         foreach (var placement in initEntities) {
-            if (placement.Key.x > x-1 && placement.Key.y > y-1) {
-                throw new System.InvalidOperationException("Inital entity placements are not allowed to be outside of board");
+            if (placement.Key.x > x - 1 && placement.Key.y > y - 1) {
+                Debug.LogException(new System.InvalidOperationException("Inital entity placements are not allowed to be outside of board"));
+                return;
             }
             this.AddEntity(pos: placement.Key, entity: placement.Value);
         }
@@ -277,8 +295,7 @@ public class BattleManager : MonoBehaviour {
         this.Cam.enabled = true;
         //cam.fieldOfView = 30;
         this.InBattle = true;
-        var loadedTiles = new Dictionary<float, GameObject>();
-        int i = 0;
+        var loadedTiles = new Dictionary<string, (GameObject normal, Tile tile, GameObject alt)>();
         foreach (var tile in tiles) {
             var go1 = new GameObject();
             var sr1 = go1.AddComponent<SpriteRenderer>();
@@ -295,7 +312,7 @@ public class BattleManager : MonoBehaviour {
             sr1.drawMode = SpriteDrawMode.Simple;
 
             go2.transform.position = Vector3.zero;
-            go2.name = tile.Name;
+            go2.name = tile.Name + "_alt";
             sr2.enabled = false;
             sr2.sortingOrder = 0;
             sr2.rendererPriority = int.MaxValue;
@@ -303,72 +320,47 @@ public class BattleManager : MonoBehaviour {
             sr2.rendererPriority = 5;
             sr2.drawMode = SpriteDrawMode.Simple;
 
-            loadedTiles.Add(i, go1);
-            loadedTiles.Add(i + .5f, go2);
-            ++i;
+            loadedTiles.Add(tile.Name, (go1, tile, go2));
         }
         SceneManager.SetActiveScene(this.BoardScene);
-        Dictionary<Vector2Int, Tile> tilemap = new();
+        var random = new System.Random();
+        var _lastTile = tiles[random.Next(0, (loadedTiles.Count / 2) + 1)];
         //await Task.Run(() => {
         for (int x = 0; x < this.BoardX; x++) {
             for (int y = 0; y < this.BoardY; y++) {
-                var isOffset = ( x % 2 == 0 && y % 2 != 0 ) || ( x % 2 != 0 && y % 2 == 0 );
-                int index;
-                Tile _tile;
-                int trys = 0;
-                while (true) {
-                    index = UnityEngine.Random.Range(0, loadedTiles.Count / 2);
-                    _tile = tiles[index];
-                    ++trys;
-                    if (trys >= 100) {
-                        break;
-                    }
-
-                    var up = new Vector2Int(x, y + 1);
-                    var down = new Vector2Int(x, y - 1);
-                    var right = new Vector2Int(x + 1, y);
-                    var left = new Vector2Int(x - 1, y);
-
-                    if (!(tilemap.ContainsKey(up) && _tile.IsAllowedNeighbor(tilemap[up]))) {
-                        continue;
-                    }
-
-                    if (!( tilemap.ContainsKey(down) && _tile.IsAllowedNeighbor(tilemap[down]) )) {
-                        continue;
-                    }
-
-                    if (!( tilemap.ContainsKey(left) && _tile.IsAllowedNeighbor(tilemap[left]) )) {
-                        continue;
-                    }
-
-                    if (!( tilemap.ContainsKey(right) && _tile.IsAllowedNeighbor(tilemap[right]) )) {
-                        continue;
-                    }
-
-                    break;
+                var isOffset = (x % 2 == 0 && y % 2 != 0) || (x % 2 != 0 && y % 2 == 0);
+                Tile.Side side;
+                if (y == 0) {
+                    side = x == 0 ? Tile.Side.Null : Tile.Side.Right;
+                } else {
+                    side = Tile.Side.Up;
                 }
+                var _allowed = _lastTile.GetAllowedNeighbors(side, loadedTiles.Select(kv => kv.Key));
+                (GameObject normal, Tile _tile, GameObject alt) = x == 0 ? loadedTiles[_lastTile.Name] : loadedTiles[_allowed[random.Next(0, _allowed.Count)]];
 
-                var tileCandidate = loadedTiles[index + ( isOffset ? .5f : 0 )];
-
-                var tile = Instantiate(tileCandidate, new Vector3(x, y), Quaternion.identity);
+                var tile = Instantiate(isOffset ? alt : normal, new Vector3(x, y), Quaternion.identity);
 
                 var sr = tile.GetComponent<SpriteRenderer>();
                 sr.enabled = true;
                 tile.name = $"{tile.name} ({x}, {y})";
-                tilemap.Add(new(x, y), _tile);
+                _lastTile = _tile;
+                this.Board[new(x, y)].tile = _tile;
             }
         }
 
-        foreach(var tile in loadedTiles) {
-            Destroy(tile.Value);
+        foreach (var tile in loadedTiles) {
+            Destroy(tile.Value.normal);
+            Destroy(tile.Value.alt);
         }
 
-        foreach (var entityInfo in this.Board) {
-            var entity = entityInfo.Value;
-            var sr = entity.ToggleSprite();
-            entity.ToggleSprite();
-            var calcX = entity.transform.position.x - ( 1 - sr.sprite.textureRect.width / 256 );
-            var calcY = entity.transform.position.y - ( 1 - sr.sprite.textureRect.height / 256 );
+        foreach (var tileInfo in this.Board) {
+            var entity = tileInfo.Value.entity;
+            if (entity == null) {
+                continue;
+            }
+            var sr = entity.GetSpriteRenderer(false);
+            var calcX = entity.transform.position.x - (1 - sr.sprite.textureRect.width / 256);
+            var calcY = entity.transform.position.y - (1 - sr.sprite.textureRect.height / 256);
             entity.transform.position = new Vector3(calcX > 0 && entity.transform.position.x > .5 ? calcX : entity.transform.position.x, calcY > 0 && entity.transform.position.y > .5 ? calcY : entity.transform.position.y, entity.transform.position.z);
         }
         //});
@@ -391,7 +383,7 @@ public class BattleManager : MonoBehaviour {
     public bool InBattle {
         get;
         private set;
-    }  = false;
+    } = false;
 
     private void EndBattle() {
         if (this.InBattle) {
@@ -450,8 +442,7 @@ public class BattleManager : MonoBehaviour {
             this.CreateNew(dic);
             try {
                 this.AddEntity(e, pos: new(15, 8));
-            }
-            catch {
+            } catch {
                 try {
                     this.AddEntity(e, pos: new(0, 8));
                 } catch { }
@@ -474,7 +465,7 @@ public class BattleManager : MonoBehaviour {
         if (this.Cursor == null) {
             this.Cursor = new();
             cr = this.Cursor.AddComponent<SpriteRenderer>();
-            cr.enabled = false;
+            cr.enabled = true;
             cr.sprite = CustomCursor != null ? CustomCursor : Resources.Load<Sprite>("tilecursors/Square");
             cr.color = CursorColor;
             cr.drawMode = SpriteDrawMode.Simple;
@@ -489,14 +480,19 @@ public class BattleManager : MonoBehaviour {
         }
         if (this.CursorSelected) {
             if (cr.color.a > 0.25f && !this.CursorReversed) {
-                cr.color = new(cr.color.r, cr.color.g, cr.color.b, cr.color.a - ( cursorFadeSpeed * Time.deltaTime ));
+                cr.color = new(cr.color.r, cr.color.g, cr.color.b, cr.color.a - (cursorFadeSpeed * Time.deltaTime));
                 cr.material.color = cr.color;
             } else if (cr.color.a < 1 && this.CursorReversed) {
-                cr.color = new(cr.color.r, cr.color.g, cr.color.b, cr.color.a + ( cursorFadeSpeed * Time.deltaTime ));
+                cr.color = new(cr.color.r, cr.color.g, cr.color.b, cr.color.a + (cursorFadeSpeed * Time.deltaTime));
                 cr.material.color = cr.color;
             } else {
                 this.CursorReversed = !this.CursorReversed;
             }
+        } else {
+            var _pos = this.Cam.ScreenToWorldPoint(Input.mousePosition);
+            this.Cursor.transform.position = new(Mathf.RoundToInt(_pos.x), Mathf.RoundToInt(_pos.y), this.Cursor.transform.position.z);
+            cr.color = new(cr.color.r, cr.color.g, cr.color.b, 1f);
+            cr.material.color = cr.color;
         }
         if (this.EnemyCount < 1) {
             this.OnBattleEnd.Invoke(true);
@@ -522,11 +518,11 @@ public class BattleManager : MonoBehaviour {
             pos.y -= 1;
         }
 
-        if (right && ( pos.y == to.y - 1 || pos.y == to.y + 1 )) {
+        if (right && (pos.y == to.y - 1 || pos.y == to.y + 1)) {
             pos2.x += 1;
         } else if (right) {
             pos.x += 1;
-        } else if (left && ( pos.y == to.y - 1 || pos.y == to.y + 1 )) {
+        } else if (left && (pos.y == to.y - 1 || pos.y == to.y + 1)) {
             pos2.x -= 1;
         } else if (left) {
             pos.x -= 1;
@@ -539,29 +535,32 @@ public class BattleManager : MonoBehaviour {
     }
 
     private void BattleInputActions() {
-        var cr = this.Cursor.GetComponent<SpriteRenderer>();
+        //var cr = this.Cursor.GetComponent<SpriteRenderer>();
+        if (Input.GetKeyDown(KeyCode.E)) {
+            EnemyTurn();
+            this.CompletedTurns.Clear();
+        }
         if (Input.GetMouseButtonDown(0)) {
             if (this.IsEntityMoving) {
                 return;
             }
+            var subject = this.Board[this.SelectedPos].entity;
             var _pos = this.Cam.ScreenToWorldPoint(Input.mousePosition);
             var pos = new Vector2Int(Mathf.RoundToInt(_pos.x), Mathf.RoundToInt(_pos.y));
             //new(Input.mousePosition.x, Input.mousePosition.y, this.gameObject.transform.position.z)
             // Debug.Log($"{Input.mousePosition} {cam.ScreenToWorldPoint(Input.mousePosition)} {Camera.main.ScreenToWorldPoint(Input.mousePosition)}");
             // Debug.Log($"({pos.x}) ({pos.y})");
             //Debug.Log(this.Board[pos]);
-            if (!this.CursorSelected && this.Board.ContainsKey(pos) && this.Board[pos].Alignment == Entity.EntityAlignment.Ally) {
+            if (!this.CursorSelected) {
                 this.Cursor.transform.position = new(pos.x, pos.y);
                 this.CursorSelected = true;
                 this.SelectedPos = pos;
-                cr.enabled = true;
             } else if (pos.x > this.BoardX || pos.x < 0 || pos.y > this.BoardY || pos.y < 0 || this.SelectedPos == pos) {
                 this.CursorSelected = false;
-                this.SelectedPos = Vector2Int.zero;
-                cr.enabled = false;
+                //this.SelectedPos = Vector2Int.zero;
             } else if (this.CursorSelected) {
-                var (free, attack) = this.CanMove(this.Board[this.SelectedPos], pos);
-                if (this.Turn == BattleTurn.Ally) {
+                if (this.Turn == BattleTurn.Ally && subject != null && subject.Alignment == Entity.EntityAlignment.Ally && !this.CompletedTurns.Contains(SelectedPos)) {
+                    var (free, attack) = this.CanMove(subject, pos);
                     if (free) {
                         this.MoveEntity(this.SelectedPos, pos, false);
                     } else if (attack && this.AttackMode) {
@@ -569,10 +568,12 @@ public class BattleManager : MonoBehaviour {
                     } else {
                         return;
                     }
+                    this.CursorSelected = false;
+                } else {
+                    this.Cursor.transform.position = new(pos.x, pos.y);
+                    this.SelectedPos = pos;
                 }
-                this.CursorSelected = false;
-                this.SelectedPos = Vector2Int.zero;
-                cr.enabled = false;
+                //this.SelectedPos = Vector2Int.zero;
             }
         }
         if (Input.GetKeyDown(KeyCode.A)) {
@@ -582,12 +583,26 @@ public class BattleManager : MonoBehaviour {
         if (Input.GetKey(KeyCode.Slash)) {
         }
     }
+    private void EnemyTurn() {
+        var allies = this.Board.Where(dic => dic.Value.entity != null).Where(dic => dic.Value.entity.Alignment == Entity.EntityAlignment.Ally).ToDictionary(a => a.Key, a => a.Value);
+        var enemies = this.Board.Where(dic => dic.Value.entity != null).Where(dic => dic.Value.entity.Alignment == Entity.EntityAlignment.Enemy).ToList();
+        foreach (var enemy in enemies) {
+            EnemyAttack(enemy, allies);
+        }
+    }
+
+    // TODO: Check if in inpassable tile
+    private void EnemyAttack(KeyValuePair<Vector2Int, TileData> entityInfo, Dictionary<Vector2Int, TileData> allies) {
+        var to = allies.OrderBy(val => Vector2Int.Distance(entityInfo.Key, val.Key)).First().Key;
+        MoveEntity(entityInfo.Key, to, true);
+    }
 
     private void CameraActions() {
         if (Input.GetKeyDown(KeyCode.R)) {
             this.transform.position = new(this.BoardX / 2.13f, this.BoardY / 2.3f, -20);
         }
-        if (( Input.GetKeyDown(KeyCode.Plus) || Input.GetKeyDown(KeyCode.KeypadPlus) || Input.GetKey(KeyCode.Plus) || Input.GetKey(KeyCode.KeypadPlus) ) && this.Cam.orthographicSize > 0.55) {
+        
+        if ((Input.GetKeyDown(KeyCode.Plus) || Input.GetKeyDown(KeyCode.KeypadPlus) || Input.GetKey(KeyCode.Plus) || Input.GetKey(KeyCode.KeypadPlus)) && this.Cam.orthographicSize > 0.55) {
             this.Cam.orthographicSize -= .05f;
             //this.transform.position = new(this.transform.position.x, this.transform.position.y, this.transform.position.z + .1f);
         }
@@ -607,6 +622,17 @@ public class BattleManager : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.Keypad2) || Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.Keypad2)) {
             this.transform.position = new(this.transform.position.x, this.transform.position.y - .05f, this.transform.position.z);
         }
+    }
+
+    private class TileData {
+        public Entity entity;
+        public Tile tile;
+
+        public TileData(Entity entity, Tile tile) {
+            this.entity = entity;
+            this.tile = tile;
+        }
+
     }
 
     class Hello : Entity {
